@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1946 賽博方程 - 官方網站</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Press Start 2P', monospace;
+            user-select: none;
+        }
+        body {
+            background-color: #05000a;
+            color: #00ffcc;
+            min-height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        /* 掃描線與復古特效 */
+        #crt-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            pointer-events: none;
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%, 
+                rgba(0, 0, 0, 0.3) 50%
+            ), linear-gradient(
+                90deg,
+                rgba(255, 0, 0, 0.03),
+                rgba(0, 255, 0, 0.015),
+                rgba(0, 0, 255, 0.03)
+            );
+            background-size: 100% 4px, 6px 100%;
+            z-index: 99;
+        }
+
+        /* 背景流動網格動畫 */
+        .cyber-grid {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: 
+                linear-gradient(to right, rgba(0, 255, 204, 0.05) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 0, 127, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: 0;
+            animation: gridMove 20s linear infinite;
+        }
+        @keyframes gridMove {
+            0% { background-position: 0 0; }
+            100% { background-position: 40px 40px; }
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1000px;
+            margin: 40px auto;
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+            z-index: 2;
+        }
+
+        /* 標題區塊動畫 */
+        header {
+            text-align: center;
+            padding: 50px 20px;
+            border: 4px solid #ff007f;
+            box-shadow: 0 0 40px rgba(255, 0, 127, 0.5), inset 0 0 20px rgba(255, 0, 127, 0.2);
+            background: rgba(2, 0, 5, 0.9);
+            position: relative;
+            overflow: hidden;
+            animation: headerGlow 3s ease-in-out infinite alternate;
+        }
+        @keyframes headerGlow {
+            0% { border-color: #ff007f; box-shadow: 0 0 20px rgba(255, 0, 127, 0.4); }
+            100% { border-color: #00ffff; box-shadow: 0 0 40px rgba(0, 255, 255, 0.6); }
+        }
+        header h1 {
+            font-size: 30px;
+            color: #ffff00;
+            text-shadow: 3px 3px #ff007f, 6px 6px #00ffff;
+            margin-bottom: 20px;
+            line-height: 1.4;
+            animation: titlePulse 2s ease-in-out infinite alternate;
+        }
+        @keyframes titlePulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.02); }
+        }
+        header p {
+            font-size: 11px;
+            color: #00ffcc;
+            letter-spacing: 2px;
+        }
+
+        /* 互動式復古預覽動畫 Canvas 區塊 */
+        .preview-box {
+            border: 3px solid #00ffff;
+            background: rgba(0, 0, 0, 0.95);
+            padding: 20px;
+            box-shadow: 0 0 25px rgba(0, 255, 255, 0.3);
+            text-align: center;
+        }
+        .preview-box h2 {
+            font-size: 14px;
+            color: #ffff00;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px #ff007f;
+        }
+        #game-canvas {
+            width: 100%;
+            max-width: 800px;
+            height: 220px;
+            background: #020008;
+            border: 2px dashed #ff007f;
+            display: block;
+            margin: 0 auto 15px auto;
+            box-shadow: inset 0 0 15px rgba(255, 0, 127, 0.3);
+        }
+        .preview-tip {
+            font-size: 9px;
+            color: #00ffcc;
+            animation: blink 1s steps(2, start) infinite;
+        }
+        @keyframes blink {
+            to { visibility: hidden; }
+        }
+
+        /* 下載專區 */
+        .download-section {
+            text-align: center;
+            padding: 40px;
+            border: 4px solid #ffff00;
+            background: rgba(10, 0, 15, 0.95);
+            box-shadow: 0 0 50px rgba(255, 255, 0, 0.4);
+            position: relative;
+        }
+        .download-btn {
+            display: inline-block;
+            background: #ff007f;
+            color: #fff;
+            border: 3px solid #00ffcc;
+            padding: 22px 45px;
+            font-size: 14px;
+            text-decoration: none;
+            box-shadow: 0 0 25px #ff007f;
+            letter-spacing: 2px;
+            margin-top: 20px;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        .download-btn:hover {
+            background: #00ffcc;
+            color: #05000a;
+            border-color: #ffff00;
+            box-shadow: 0 0 50px #00ffcc, 0 0 20px #ffff00;
+            transform: scale(1.08);
+        }
+
+        /* 區塊通用樣式 */
+        .section-box {
+            border: 3px solid #00ffcc;
+            background: rgba(2, 0, 5, 0.9);
+            padding: 30px;
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.2);
+        }
+        .section-box h2 {
+            font-size: 16px;
+            color: #ffff00;
+            margin-bottom: 25px;
+            text-shadow: 2px 2px #ff007f;
+            border-bottom: 2px dashed #00ffcc;
+            padding-bottom: 10px;
+        }
+
+        /* 遊戲特色網格 */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 20px;
+        }
+        .feature-card {
+            background: #000;
+            border: 2px solid #ff007f;
+            padding: 20px;
+            box-shadow: 0 0 10px #ff007f;
+            transition: transform 0.3s, border-color 0.3s;
+        }
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: #00ffff;
+            box-shadow: 0 0 20px #00ffff;
+        }
+        .feature-card h3 {
+            font-size: 12px;
+            color: #00ffff;
+            margin-bottom: 10px;
+        }
+        .feature-card p {
+            font-size: 9px;
+            line-height: 1.6;
+            color: #ccc;
+        }
+
+        /* 玩法詳細指南 */
+        .gameplay-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .step-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            background: rgba(0, 255, 204, 0.05);
+            border-left: 4px solid #ffff00;
+            padding: 15px;
+        }
+        .step-num {
+            font-size: 14px;
+            color: #ffff00;
+            min-width: 30px;
+        }
+        .step-content h4 {
+            font-size: 11px;
+            color: #00ffff;
+            margin-bottom: 5px;
+        }
+        .step-content p {
+            font-size: 9px;
+            color: #aaa;
+            line-height: 1.5;
+        }
+
+        /* 控制按鍵對照表 */
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+        }
+        .control-key-card {
+            background: rgba(255, 0, 127, 0.1);
+            border: 2px solid #00ffcc;
+            padding: 15px;
+            text-align: center;
+        }
+        .control-key-card kbd {
+            display: inline-block;
+            background: #ff007f;
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 10px;
+            margin-bottom: 8px;
+            box-shadow: 0 3px 0 #99004c;
+        }
+        .control-key-card p {
+            font-size: 9px;
+            color: #ddd;
+        }
+
+        footer {
+            text-align: center;
+            font-size: 9px;
+            color: #555;
+            padding: 30px;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="crt-overlay"></div>
+    <div class="cyber-grid"></div>
+
+    <div class="container">
+        <!-- 標題區 -->
+        <header>
+            <h1>CYBER ARCADE<br>1946: 賽博方程</h1>
+            <p>&gt;&gt; 沉浸式霓虹末日．極限反應橫版動作大作 &lt;&lt;</p>
+        </header>
+
+        <!-- 遊戲互動模擬預覽動畫區塊 -->
+        <div class="preview-box">
+            <h2>// 遊戲實機動態預覽模擬</h2>
+            <canvas id="game-canvas"></canvas>
+            <div class="preview-tip">&gt; 點擊畫布或按空白鍵可讓賽博戰機進行跳躍模擬！ &lt;</div>
+        </div>
+
+        <!-- 下載專區 -->
+        <div class="download-section">
+            <h2 style="font-size: 18px; color: #ffff00; margin-bottom: 10px; text-shadow: 2px 2px #ff007f;">立即下載完整電腦版 (.EXE)</h2>
+            <p style="font-size: 10px; color: #00ffcc; margin-bottom: 20px;">支援 Windows 系統，解壓縮即可暢玩！內建全螢幕、音效與全球雲端排行榜。</p>
+            <a href="https://drive.google.com/file/d/1Mz54ZKgut9tYLdwZJ5t8B_3xQJw3S1zY/view?usp=sharing" class="download-btn" target="_blank">DOWNLOAD EXE (WIN)</a>
+        </div>
+
+        <!-- 遊戲特色 -->
+        <div class="section-box">
+            <h2>// 核心特色亮點</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <h3>動態障礙流</h3>
+                    <p>障礙物隨機生成且具備高度變幻，時刻考驗玩家的動態視力與極限反應。</p>
+                </div>
+                <div class="feature-card">
+                    <h3>賽博衝刺機制</h3>
+                    <p>獨創短暫無敵衝刺，可瞬間穿梭致命危機，抓住轉瞬即逝的生存空隙。</p>
+                </div>
+                <div class="feature-card">
+                    <h3>全球雲端榜</h3>
+                    <p>內建即時積分系統，向全世界的頂尖反應高手發起挑戰，爭奪最高榮譽。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 玩法詳細介紹 -->
+        <div class="section-box">
+            <h2>// 玩法與生存守則</h2>
+            <div class="gameplay-steps">
+                <div class="step-item">
+                    <div class="step-num">01</div>
+                    <div class="step-content">
+                        <h4>精準跳躍閃避</h4>
+                        <p>面對迎面而來的賽博障礙與陷阱，利用適時的跳躍與二段高度掌握節奏，安然通過險境。</p>
+                    </div>
+                </div>
+                <div class="step-item">
+                    <div class="step-num">02</div>
+                    <div class="step-content">
+                        <h4>驚險 Combo 連擊</h4>
+                        <p>緊貼障礙物邊緣驚險閃過時，將觸發額外高分 Combo 獎勵，挑戰極限風險賺取高分。</p>
+                    </div>
+                </div>
+                <div class="step-item">
+                    <div class="step-num">03</div>
+                    <div class="step-content">
+                        <h4>強力道具蒐集</h4>
+                        <p>賽道中隨機出現護盾（抵擋一次傷害）與加倍晶片，妥善運用是突破個人記錄的關鍵。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 操作指南 -->
+        <div class="section-box">
+            <h2>// 操作指南</h2>
+            <div class="controls-grid">
+                <div class="control-key-card">
+                    <kbd>Space / 向上鍵</kbd>
+                    <p>跳躍 / 滯空調整</p>
+                </div>
+                <div class="control-key-card">
+                    <kbd>Shift / 右鍵</kbd>
+                    <p>發動賽博衝刺</p>
+                </div>
+                <div class="control-key-card">
+                    <kbd>ESC 鍵</kbd>
+                    <p>暫停 / 返回選單</p>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            &copy; 1946 CYBER EQUATION. ALL RIGHTS RESERVED. POWERED BY NEON ARCADE ENGINE.
+        </footer>
+    </div>
+
+    <script>
+        // Canvas 互動動態模擬動畫
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth - 40;
+            canvas.height = 200;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        let player = {
+            x: 50,
+            y: 130,
+            w: 24,
+            h: 24,
+            vy: 0,
+            jumpForce: -9,
+            gravity: 0.5,
+            groundY: 130
+        };
+
+        let obstacles = [];
+        let particles = [];
+        let frameCount = 0;
+        let score = 0;
+
+        function jump() {
+            if (player.y >= player.groundY) {
+                player.vy = player.jumpForce;
+                // 產生跳躍粒子
+                for(let i=0; i<8; i++) {
+                    particles.push({
+                        x: player.x + 12,
+                        y: player.y + 24,
+                        vx: (Math.random() - 0.5) * 4,
+                        vy: Math.random() * -3,
+                        color: '#00ffff',
+                        life: 20
+                    });
+                }
+            }
+        }
+
+        canvas.addEventListener('click', jump);
+        window.addEventListener('keydown', (e) => {
+            if(e.code === 'Space') {
+                e.preventDefault();
+                jump();
+            }
+        });
+
+        function update() {
+            frameCount++;
+            // 物理運算
+            player.vy += player.gravity;
+            player.y += player.vy;
+            if (player.y > player.groundY) {
+                player.y = player.groundY;
+                player.vy = 0;
+            }
+
+            // 生成障礙物
+            if (frameCount % 90 === 0) {
+                obstacles.push({
+                    x: canvas.width,
+                    y: 134,
+                    w: 20,
+                    h: 20,
+                    speed: 4 + Math.random() * 2
+                });
+            }
+
+            // 移動障礙物
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                obstacles[i].x -= obstacles[i].speed;
+                if (obstacles[i].x + obstacles[i].w < 0) {
+                    obstacles.splice(i, 1);
+                    score += 100;
+                }
+            }
+
+            // 更新粒子
+            for (let i = particles.length - 1; i >= 0; i--) {
+                particles[i].x += particles[i].vx;
+                particles[i].y += particles[i].vy;
+                particles[i].life--;
+                if (particles[i].life <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+        }
+
+        function draw() {
+            ctx.fillStyle = '#020008';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 繪製賽道地板網格線
+            ctx.strokeStyle = '#ff007f';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, 154);
+            ctx.lineTo(canvas.width, 154);
+            ctx.stroke();
+
+            // 繪製背景流星/裝飾線
+            ctx.strokeStyle = 'rgba(0, 255, 204, 0.2)';
+            ctx.lineWidth = 1;
+            for(let i=0; i<3; i++) {
+                let lx = (frameCount * (2 + i) + i * 150) % canvas.width;
+                ctx.beginPath();
+                ctx.moveTo(lx, 30 + i * 30);
+                ctx.lineTo(lx + 40, 30 + i * 30);
+                ctx.stroke();
+            }
+
+            // 繪製玩家 (賽博戰機方塊)
+            ctx.fillStyle = '#00ffff';
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#00ffff';
+            ctx.fillRect(player.x, player.y, player.w, player.h);
+
+            // 繪製障礙物
+            ctx.fillStyle = '#ff007f';
+            ctx.shadowColor = '#ff007f';
+            for (let obs of obstacles) {
+                ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+            }
+            ctx.shadowBlur = 0; // 重置陰影
+
+            // 繪製粒子
+            for (let p of particles) {
+                ctx.fillStyle = p.color;
+                ctx.fillRect(p.x, p.y, 3, 3);
+            }
+
+            // 繪製分數
+            ctx.fillStyle = '#ffff00';
+            ctx.font = '10px "Press Start 2P"';
+            ctx.fillText("SIMULATION SCORE: " + score, 20, 30);
+        }
+
+        function loop() {
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+        loop();
+    </script>
+</body>
+</html>
